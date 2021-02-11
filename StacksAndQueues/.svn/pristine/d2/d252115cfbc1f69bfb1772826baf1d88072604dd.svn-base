@@ -1,0 +1,91 @@
+package queues;
+
+import java.util.ArrayList;
+import java.util.EmptyStackException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
+
+public class QueueFromStacks<T> implements SimpleQueue<T> {
+
+	Stack<T> inStack;
+	Stack<T> outStack;
+
+	public QueueFromStacks() {
+		this.inStack = new Stack<T>();
+		this.outStack = new Stack<T>();
+	}
+
+	@Override
+	public void clear() {
+		this.inStack.clear();
+		this.outStack.clear();
+	}
+
+	@Override
+	public void enqueue(T item) {
+		this.inStack.push(item);
+	}
+
+	@Override
+	public T dequeue() throws NoSuchElementException {
+		while (!this.inStack.isEmpty()) {
+			this.outStack.push(this.inStack.pop());
+		}
+		
+		try {
+			return this.outStack.pop();
+		} catch (EmptyStackException e) {
+			throw new NoSuchElementException();
+		}
+	}
+
+	@Override
+	public T peek() throws NoSuchElementException {
+		T item = this.dequeue();
+		this.enqueue(item);
+		return item;
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return this.inStack.isEmpty() && this.outStack.isEmpty();
+	}
+
+	@Override
+	public int size() {
+		return this.inStack.size() + this.outStack.size();
+	}
+
+	@Override
+	public boolean contains(T item) {
+		return this.inStack.contains(item) || this.outStack.contains(item);
+	}
+	
+	@Override
+	public String toString() {
+		if (this.isEmpty()) {
+			return "[]";
+		}
+		Iterator<T> inIterator = this.inStack.iterator();
+		Iterator<T> outIterator = this.outStack.iterator();
+		String result = "[";
+		ArrayList<T> reversalArray = new ArrayList<T>();
+		while (outIterator.hasNext()) {
+			reversalArray.add(0, outIterator.next());
+		}
+		for (T item : reversalArray) {
+			result += item + ", ";
+		}
+		while (inIterator.hasNext()) {
+			result += inIterator.next() + ", ";
+		}
+		return result.substring(0, result.length() - 2) + "]";
+	}
+
+	@Override
+	public String debugString() {
+		return null;
+	}
+
+}

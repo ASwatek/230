@@ -1,0 +1,166 @@
+package evaluator;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Scanner;
+import java.util.Stack;
+
+public class InfixEvaluator extends Evaluator {
+
+	private ArrayList<Character> operators;
+	private ArrayList<Integer> precedence;
+
+	public InfixEvaluator() {
+		this.operators = new ArrayList<Character>(); // Should probably change this to a HashMap
+		this.operators.add('(');
+		this.operators.add('^');
+		this.operators.add('*');
+		this.operators.add('/');
+		this.operators.add('+');
+		this.operators.add('-');
+		
+		this.precedence = new ArrayList<Integer>();
+		this.precedence.add(0);
+		this.precedence.add(3);
+		this.precedence.add(2);
+		this.precedence.add(2);
+		this.precedence.add(1);
+		this.precedence.add(1);
+		
+	}
+
+	@Override
+	public int evaluate(String expression) throws ArithmeticException {
+		PostfixEvaluator eval = new PostfixEvaluator();
+		String postFix = this.convertToPostfix(expression);
+		return eval.evaluate(postFix);
+	}
+	
+	public String convertToPostfix(String string) {
+		
+		if (!verifyEquation(string)) {
+			throw new ArithmeticException();
+		}
+		
+		int startChar = 97;
+		HashMap<Integer, Integer> numToVarMap = new HashMap<Integer, Integer>();
+		ArrayList<Character> result = new ArrayList<Character>();
+		Stack<Character> operatorStack = new Stack<Character>();
+		Scanner scanner = new Scanner(string);
+		scanner.useDelimiter(" ");
+		
+		while (scanner.hasNext()) { // Convert ints to letters to avoid issues with multiple digit numbers
+			if (scanner.hasNextInt()) {
+				int num = scanner.nextInt();
+				if (!numToVarMap.containsKey(num)) {
+					numToVarMap.put(num, startChar++);
+				}
+			} else {
+				scanner.next();
+			}
+		}
+		
+		Object[] mapArray = numToVarMap.keySet().toArray();
+		int[] keyArray = new int[numToVarMap.size()];
+		for (int i = 0; i < keyArray.length; i++) {
+			keyArray[i] = (int) mapArray[i];
+		}
+		Arrays.sort(keyArray); // Sort array so it can be reverse without any side-effects later
+		
+		// Going from largest to smallest when convert from int to letters allows me to avoid partially replacing
+		// some digits of a bigger number with the one for a smaller number. 
+		//Example: [15, 5] -> [a, b] versus [15, 5] -> [1a, a] -> [ba, a]
+		for (int i = keyArray.length - 1; i >= 0; i--) {  // I could use a StringBuilder, but doesn't have a .replace() that would properly work
+			int key = keyArray[i];
+			char replacement = (char) ((int) numToVarMap.get(key));
+			string = string.replace(key + "", replacement + "");
+		}
+		
+		for (int i = 0; i < string.length(); i++) { // Loop through the input, due to replacing the numbers, I can assume everything is 1 character
+			char ch = string.charAt(i);
+			System.out.println("Char: " + ch);
+			if (Character.isLetter(ch)) {
+				//throw new ArithmeticException();
+				result.add(ch);
+			} else if (Character.isWhitespace(ch)) {
+				continue;
+			} else if (ch == '(') { // Treat '(' as an operator since it makes everything inside of it a higher precedence
+				operatorStack.push(ch);
+				System.out.println("Stack 1: " + operatorStack);
+			} else if (ch == ')') {
+				System.out.println("Stack: " + operatorStack);
+				char top = operatorStack.pop();
+				while (top != '(') {
+					result.add(top);
+					System.out.println("Top: " + top);
+					top = operatorStack.pop();
+				}
+			} else {
+				System.out.println("entered");
+				while (!operatorStack.isEmpty()) { // Enforce PEMDAS to make sure division/multiplication happen before addition
+					int precedenceIndex1 = this.operators.indexOf(operatorStack.peek());
+					int precedenceIndex2 = this.operators.indexOf(ch);
+					
+					//if (operatorStack.peek() == '(') { precedenceIndex1 = 4;}
+					
+					if (this.precedence.get(precedenceIndex1) < this.precedence.get(precedenceIndex2)) {
+						break;
+					}
+					result.add(operatorStack.pop());
+				}
+				operatorStack.push(ch);
+			/*
+			} else if (ch == '(') {
+				operatorStack.push(ch);
+			} else if (ch == ')') {
+				char top = operatorStack.pop();
+				while (top != '(') {
+					result.add(top);
+					System.out.println("Top: " + top);
+					top = operatorStack.pop();
+				}*/
+			}
+		}
+		System.out.println("Result array: " + result);
+		System.out.println("Operators: " + operatorStack);
+		StringBuilder builder = new StringBuilder();
+		for (Character ch : result) { // Put all characters/parenthesied operators in before trailing operators
+			builder.append(ch + " ");
+		}
+		while (!operatorStack.isEmpty()) { // Add in trailing operators
+			builder.append(operatorStack.pop() + " ");
+		}
+		System.out.println("Result: " + builder.toString());
+		builder.deleteCharAt(builder.length() - 1); // Delete the last space or the tests will get mad
+		
+		String stringResult = builder.toString();
+		
+		for (Integer key : numToVarMap.keySet()) { // Replace all letter characters with their numerical equivalents
+			char replacement = (char) ((int) numToVarMap.get(key));
+			stringResult = stringResult.replace(replacement + "", (int) key + "");
+		}
+		System.out.println("Final: " + stringResult);
+		return stringResult;
+	}
+	
+	public boolean verifyEquation(String string) {
+		int openParenCount = 0;
+		int closeParenCount = 0;
+		for (int i = 0; i < string.length(); i++) {
+			char ch = string.charAt(i);
+			if (ch == '(') {
+				openParenCount++;
+			} else if (ch == ')') {
+				closeParenCount++;
+			} else if (Character.isLetter(ch)) {
+				return false;
+			}
+		}
+		if (openParenCount != closeParenCount) {
+			return false;
+		}
+		return true;
+	}
+
+}

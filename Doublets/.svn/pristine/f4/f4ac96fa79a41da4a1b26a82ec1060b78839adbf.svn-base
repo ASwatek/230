@@ -1,0 +1,46 @@
+import java.util.Queue;
+
+public class PriorityQueueChainManager extends ChainManager {
+	String end;
+	Queue<Chain> chains;
+	
+	public PriorityQueueChainManager(String end) {
+		this.end=end;
+	}
+	
+	@Override
+	public void add(Chain chain) {
+		// TODO Auto-generated method stub.
+
+	}
+
+	@Override
+	public Chain next() {
+		// TODO Auto-generated method stub.
+		return null;
+	}
+
+	@Override
+	public boolean isEmpty() {
+		// TODO Auto-generated method stub.
+		return false;
+	}
+	
+	public class Entry implements Comparable<Entry>{
+		Chain chain;
+		
+		public Entry(Chain chain){
+			this.chain=chain;
+		}
+
+		
+		//length is length of chain
+		@Override
+		public int compareTo(Entry other) {//estimated total length calced by chainManager
+			
+			return 0;
+		}
+		
+	}
+	
+}

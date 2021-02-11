@@ -1,0 +1,167 @@
+package queues;
+
+import java.lang.reflect.Array;
+import java.util.NoSuchElementException;
+
+/**
+ * A circular queue that grows as needed.
+ * 
+ * @author Matt Boutell and <<<your name here>>>
+ * @param <T>
+ */
+public class GrowableCircularArrayQueue<T> implements SimpleQueue<T>{
+	// DONE: Declare this class to implement SimpleQueue<T>, then add the
+	// missing methods (Eclipse will help).
+	// DONE: The javadoc for overridden methods is in the SimpleQueue interface.
+	// Read it!
+
+	private static final int INITIAL_CAPACITY = 5;
+
+	private T[] array;
+	private Class<T> type;
+	
+	private int startIndex;
+	private int itemsInside;
+	private int endIndex;
+
+	/**
+	 * Creates an empty queue with an initial capacity of 5
+	 * 
+	 * @param type
+	 *            So that an array of this type can be constructed.
+	 */
+	@SuppressWarnings("unchecked")
+	public GrowableCircularArrayQueue(Class<T> type) {
+		this.type = type;
+		// This is a workaround due to a limitation Java has with
+		// constructing generic arrays.
+		this.array = (T[]) Array.newInstance(this.type, INITIAL_CAPACITY);
+		this.startIndex=0;
+		this.itemsInside=0;
+		this.endIndex=0;
+	}
+
+	@Override
+	public void clear() {
+		this.array = (T[]) Array.newInstance(this.type, INITIAL_CAPACITY);
+		this.startIndex=0;
+		this.endIndex=0;
+		this.itemsInside=0;
+	}
+
+	@Override
+	public void enqueue(T item) {//adds 
+		if(itemsInside==array.length){//increases size if filled
+			T[] newArray = (T[]) Array.newInstance(this.type, array.length*2);
+			//TODO: fix resizing so that it does it in order from start to end, not from 0 to length
+			for(int i=0; i<array.length; i++){
+				newArray[i]=this.array[i];
+			}
+			startIndex=0;
+			endIndex=itemsInside;
+			this.array=newArray;
+		}
+		if(endIndex==array.length && itemsInside!=array.length){
+			endIndex=0;
+		}
+		
+		array[endIndex]=item;
+//		startIndex++;
+		itemsInside++;
+		endIndex++;
+	}
+
+	@Override
+	public T dequeue() throws NoSuchElementException {//removes frontmost element
+		if(isEmpty()) throw new NoSuchElementException();
+		T removed = array[startIndex];
+		array[startIndex]=null;
+		itemsInside--;
+		startIndex++;
+		return removed;
+	}
+
+	@Override
+	public T peek() throws NoSuchElementException {
+		if(isEmpty()) throw new NoSuchElementException();
+		return array[0];//shouldnt work with array[0], should be array[end] (or start, i honestly have no clue)
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return this.itemsInside==0;
+	}
+
+	@Override
+	public int size() {
+		return this.itemsInside;
+	}
+
+	@Override
+	public boolean contains(T item) {
+		if(isEmpty()) return false;
+		
+		for(int i=startIndex; i<endIndex; i++){
+			if(array[i].equals(item)) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Displays the contents of the queue in insertion order, with the
+	 * most-recently inserted one last, in other words, not wrapped around. Each
+	 * adjacent pair will be separated by a comma and a space, and the whole
+	 * contents will be bounded by square brackets. See the unit tests for
+	 * examples.
+	 */
+	@Override
+	public String toString() {
+		if(isEmpty()) return "[]";
+		String returnString="[";
+		System.out.println(startIndex);
+		System.out.println(endIndex);
+		System.out.println();
+		if(endIndex<startIndex){
+			for(int i=startIndex; i<array.length; i++){
+				if(i==endIndex-1) returnString+=array[i].toString();
+				else returnString+=array[i].toString() + ", ";
+			}
+			for(int i=0; i<endIndex; i++){
+				returnString+=array[i].toString();
+			}
+		}
+		for(int i=startIndex; i<endIndex; i++){
+			if(i==endIndex-1) returnString+=array[i].toString();
+			else returnString+=array[i].toString() + ", ";
+			System.out.print(array[i].toString()+ " ");
+		}
+		return returnString+"]";
+	}
+
+	@Override
+	public String debugString() {
+		if(isEmpty()) return "[]";
+		String returnString="[";
+		System.out.println(startIndex);
+		System.out.println(endIndex);
+		System.out.println();
+		if(endIndex<startIndex){
+			for(int i=startIndex; i<startIndex+endIndex+1; i++){
+				if(i==endIndex-1) returnString+=array[i].toString();
+				else returnString+=array[i].toString() + ", ";
+			}
+			for(int i=0; i<endIndex; i++){
+				returnString+=array[i].toString();
+			}
+		}
+		for(int i=startIndex; i<endIndex; i++){
+			if(i==endIndex-1) returnString+=array[i].toString();
+			else returnString+=array[i].toString() + ", ";
+			System.out.print(array[i].toString()+ " ");
+		}
+		return returnString+"]";
+	}
+
+
+
+}

@@ -1,0 +1,102 @@
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Scanner;
+import java.util.Set;
+
+/**
+ * Finds all of the other words that differ by a single character to a given
+ * word.
+ *
+ * @author Derek Grayless and Austin Swatek
+ */
+public class Links implements LinksInterface {
+	HashMap<String, LinkedHashSet<String>> wordMaps;// maps a given word to a
+													// Set of words that are one
+													// character off
+
+	/**
+	 * 
+	 * Creates and populates wordMaps with the words that it can be changed to
+	 * by altering one letter. Runtime of N + N^2
+	 * 
+	 * @param fileName
+	 *            - name of dictionary being read from
+	 */
+	public Links(String fileName) {
+		this.wordMaps = new HashMap<>();// hashmap
+		ArrayList<String> allWords = new ArrayList<>();// list of all of the
+														// words read in from
+														// dictionary
+
+		try {
+			FileReader fr = new FileReader(fileName);
+			Scanner currentWordScanner = new Scanner(fr);
+			while (currentWordScanner.hasNext()) {// loops through all words in
+													// dictionary to populate
+													// list of all words
+				allWords.add(currentWordScanner.next());
+			}
+		} catch (FileNotFoundException exception) {
+			exception.printStackTrace();
+		}
+
+		for (int i = 0; i < allWords.size(); i++) {
+			String start = allWords.get(i);// initial word to compare to all
+											// others in dictionary
+			int numDiffs = 0;
+			LinkedHashSet<String> candidates = new LinkedHashSet<>();
+			// words that are possible to be changed to
+
+			for (int j = 0; j < allWords.size(); j++) {
+				String compare = allWords.get(j);// all other words to compare
+													// to initial word above
+				numDiffs = 0;// used to keep track of how much each string
+								// differs from initial
+
+				if (start.length() == compare.length()) {
+					for (int k = 0; k < start.length(); k++) {
+						if (start.charAt(k) != compare.charAt(k))
+							numDiffs++;
+					}
+					if (numDiffs == 1) {// will only add a word as a candidate
+										// if it is different by one letter
+						candidates.add(compare);
+					}
+				}
+			}
+			wordMaps.put(start, candidates);// stores initial word with all of
+											// its possible candidates
+		}
+	}
+
+	/**
+	 * 
+	 * @param word - word to get possible candidates to change to
+	 * @return - set of all of the possible candidates parameter can be changed to
+	 */
+	@Override
+	public Set<String> getCandidates(String word) {
+		if (!wordMaps.containsKey(word)) {
+			return null;
+		}
+		if (wordMaps.get(word).isEmpty())
+			return null;
+		return wordMaps.get(word);
+	}
+
+	/**
+	 * Determines if a word exists inside of the wordMap. Essentially says
+	 * "yes/no" to if the word was in the dictionary passed in
+	 * 
+	 * @param word
+	 *            - word to check existence of
+	 */
+	@Override
+	public boolean exists(String word) {
+		return wordMaps.containsKey(word);
+	}
+
+}

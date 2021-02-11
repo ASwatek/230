@@ -1,0 +1,217 @@
+package graphs;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+
+public class AdjacencyMatrixGraph<T> extends Graph<T> {
+	Map<T,Integer> keyToIndex;
+	List<T> indexToKey;
+	int[][] matrix;
+	
+	AdjacencyMatrixGraph(Set<T> keys) {
+		int size = keys.size();
+		this.keyToIndex = new HashMap<T,Integer>();
+		this.indexToKey = new ArrayList<T>();
+		this.matrix = new int[size][size];
+		
+		int i=0;
+		for(T key : keys){
+			this.keyToIndex.put(key, i);
+			this.indexToKey.add(key);
+			i++;
+		}
+		
+	}
+	
+	@Override
+	public int size() {
+		return keyToIndex.size();
+	}
+
+	@Override
+	public int numEdges() {
+		//TODO: fix to just cover enough, not all
+		int count=0;
+		for(int i=0; i<matrix[0].length; i++){
+			for(int j=0; j<matrix.length; j++){
+				if(matrix[i][j]==1) count++;
+			}
+		}
+		return count;
+	}
+
+	@Override
+	public boolean addEdge(T from, T to) {
+		if(!this.keyToIndex.containsKey(from) || !this.keyToIndex.containsKey(to)){
+			throw new NoSuchElementException();
+		}
+		int row = this.keyToIndex.get(from);
+		int col = this.keyToIndex.get(to);
+		if(this.matrix[row][col]==1) return false;
+		this.matrix[row][col] = 1;
+		return true;
+	}
+
+	@Override
+	public boolean hasVertex(T key) {
+		if(!this.keyToIndex.containsKey(key)) return false;
+		int index = this.keyToIndex.get(key);
+		for(int i=0; i<this.matrix.length; i++){
+			if(matrix[index][i]==1) return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean hasEdge(T from, T to) throws NoSuchElementException {
+		if(!this.keyToIndex.containsKey(from) || !this.keyToIndex.containsKey(to)){
+			throw new NoSuchElementException();
+		}
+		int index1 = this.keyToIndex.get(from);
+		int index2 = this.keyToIndex.get(to);
+		if(this.matrix[index1][index2]==1) return true;
+		return false;
+	}
+
+	@Override
+	public boolean removeEdge(T from, T to) throws NoSuchElementException {
+		if(!this.keyToIndex.containsKey(from) || !this.keyToIndex.containsKey(to)){
+			throw new NoSuchElementException();
+		}
+		int index1 = this.keyToIndex.get(from);
+		int index2 = this.keyToIndex.get(to);
+		if(this.matrix[index1][index2]==1){
+			this.matrix[index1][index2]=0;
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public int outDegree(T key) {
+		if(!this.keyToIndex.containsKey(key)) throw new NoSuchElementException();
+		
+		int count=0;
+		int index=this.keyToIndex.get(key);
+		for(int i=0; i<this.matrix.length; i++){
+			if(matrix[index][i]==1) count++;
+		}
+		return count;
+	}
+
+	@Override
+	public int inDegree(T key) {
+		if(!this.keyToIndex.containsKey(key)) throw new NoSuchElementException();
+		
+		int count=0;
+		int index=this.keyToIndex.get(key);
+		for(int i=0; i<this.matrix.length; i++){
+			if(matrix[i][index]==1) count++;
+		}
+		return count;
+	}
+
+	@Override
+	public Set<T> keySet() {
+		return this.keyToIndex.keySet();
+	}
+
+	@Override
+	public Set<T> successorSet(T key) {
+		if(!this.keyToIndex.containsKey(key)) throw new NoSuchElementException();
+		
+		Set<T> retSet = new HashSet<T>();
+		int index=this.keyToIndex.get(key);
+		for(int i=0; i<this.matrix.length; i++){
+			if(matrix[index][i]==1){
+				retSet.add(this.indexToKey.get(i));
+			}
+		}
+		
+		return retSet;
+	}
+
+	@Override
+	public Set<T> predecessorSet(T key) {
+		if(!this.keyToIndex.containsKey(key)) throw new NoSuchElementException();
+		
+		Set<T> retSet = new HashSet<T>();
+		int index=this.keyToIndex.get(key);
+		for(int i=0; i<this.matrix.length; i++){
+			if(matrix[i][index]==1){
+				retSet.add(this.indexToKey.get(i));
+			}
+		}
+		
+		return retSet;
+	}
+
+	@Override
+	public Iterator<T> successorIterator(T key) {
+		if(!this.keyToIndex.containsKey(key)) throw new NoSuchElementException();
+		int v = this.keyToIndex.get(key);
+		
+		return new GraphIter((T[]) this.successorSet(key).toArray(), this.successorSet(key).size());
+	}
+
+	@Override
+	public Iterator<T> predecessorIterator(T key) {
+		if(!this.keyToIndex.containsKey(key)) throw new NoSuchElementException();
+		return new GraphIter((T[]) this.predecessorSet(key).toArray(), this.predecessorSet(key).size());
+	}
+	
+	public class GraphIter implements Iterator<T> {
+		T[] list;
+		int startSize;
+		int current;
+		
+		public GraphIter(T[] list, int size) {
+			this.list = list;
+			this.startSize = size;
+			this.current=0;
+		}
+
+		@Override
+		public boolean hasNext() {
+			if(current<startSize) return true;
+			return false;
+		}
+
+		@Override
+		public T next() {
+			this.current++;
+//			return this.list.
+			return list[current-1];
+		}
+	}
+
+//	//M2
+//	@Override
+//	public Set<T> stronglyConnectedComponent(T key) {
+//		
+//		return null;
+//	}
+
+//	//M2
+//	@Override
+//	public List<T> shortestPath(T startLabel, T endLabel) {
+//		ArrayList<T> retList = new ArrayList<T>();
+//		retList.add(startLabel);
+//		
+//		if(this.hasEdge(startLabel, endLabel)){
+//			retList.add(endLabel);
+//			return retList;
+//		}
+//		
+//		
+//		
+//		return null;
+//	}
+
+}

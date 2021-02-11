@@ -1,0 +1,207 @@
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
+
+/**
+ * 
+ * Implementation of most of the Set interface operations using a Binary Search Tree
+ *
+ * @author Matt Boutell and <<< YOUR NAME HERE >>>.
+ * @param <T>
+ */
+
+public class BinarySearchTree<T extends Comparable<? super T>>{
+
+	private BinaryNode root;
+
+	// Most of you will prefer to use NULL NODES once you see how to use them.
+	 private final BinaryNode NULL_NODE = new BinaryNode();
+
+	public BinarySearchTree() {
+//		root = null; // NULL_NODE;
+		root = NULL_NODE;
+	}
+	
+	public String toString(){
+		return this.toArrayList().toString();
+	}
+
+	// For manual tests only
+	void setRoot(BinaryNode n) {
+		this.root = n;
+	}
+	
+	// Not private, since we need access for manual testing.
+	class BinaryNode {
+		private T data;
+		private BinaryNode left;
+		private BinaryNode right;
+
+		public BinaryNode() {
+			this.data = null;
+			this.left = null;
+			this.right = null;
+		}
+
+		public BinaryNode(T element) {
+			this.data = element;
+//			this.left = null;//NULL_NODE;
+			this.left = NULL_NODE;
+//			this.right = null;//NULL_NODE;
+			this.right = NULL_NODE;
+		}
+		
+		public int size(){
+			if(this==NULL_NODE){
+				return 0;
+			}
+			return 1 + left.size() + right.size();
+		}
+		
+		public boolean containsNonBST(T item) {//cant assume it is binary, so no check left/right cases
+			if(this==NULL_NODE) return false;
+			if(data.equals(item)) return true;
+//			if(left==NULL_NODE) return right.containsNonBST(item);
+//			if(right==NULL_NODE) return left.containsNonBST(item);
+			
+			return left.containsNonBST(item) || right.containsNonBST(item);
+		}
+		
+		public void toArrayList(ArrayList<T> list){
+			if(this==NULL_NODE){
+				return;
+			}
+			left.toArrayList(list);
+			list.add(this.data);
+			right.toArrayList(list);
+			
+		}
+
+		public T getData() {
+			return this.data;
+		}
+
+		public BinaryNode getLeft() {
+			return this.left;
+		}
+
+
+		public BinaryNode getRight() {
+			return this.right;
+		}
+
+		// For manual testing
+		public void setLeft(BinaryNode left) {
+			this.left = left;
+		}
+		
+		public void setRight(BinaryNode right) {
+			this.right = right;
+		}
+
+		public int height() {
+			if(this == NULL_NODE) return -1;
+			
+			return Math.max(left.height(), right.height()) + 1;
+		}
+
+		public BinaryNode insert(T item) {
+			if(this==NULL_NODE) return new BinaryNode(item);
+			if(item.compareTo(this.data)<0) left=left.insert(item);
+			else if(item.compareTo(this.data)>0) right=right.insert(item);
+			return this;
+		}		
+	}
+
+	public boolean isEmpty() {
+//		 return root.size()==0;
+		return root.data==null;
+	}
+
+
+	public boolean containsNonBST(T item) {
+		return root.containsNonBST(item);
+	}
+
+	public int height() {
+		return root.height();
+	}
+
+	public int size() {
+		return root.size();
+	}
+
+
+	public Iterator<T> inefficientIterator() {
+		return new ArrayListIterator();
+	}
+	
+	public Iterator<T> preOrderIterator() {
+		return new PreOrderIterator();
+	}
+
+	public ArrayList<T> toArrayList() {
+		ArrayList<T> ret = new ArrayList<>();
+//		Iterator<T> name = new ArrayListIterator();
+//		while(name.hasNext()){
+//			ret.add(name.next());
+//		}
+		root.toArrayList(ret);
+		return ret;
+	}
+
+	// TODO: Implement your 3 iterator classes here, plus any other inner helper classes you'd like. 
+	public class ArrayListIterator implements Iterator<T>{
+		ArrayList<T> list;
+		int index;
+		
+		public ArrayListIterator(){
+			list=toArrayList();
+			index=0;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return index<list.size();
+		}
+
+		@Override
+		public T next() {
+			if(!hasNext()) throw new NoSuchElementException();
+			T ret = list.get(index);
+			index++;
+			return ret;
+		}	
+	}
+	
+	public class PreOrderIterator implements Iterator<T> {
+		Stack<BinaryNode> st;
+		
+		PreOrderIterator(){
+			st = new Stack();
+			st.push(root);
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return !st.isEmpty();
+		}
+
+		@Override
+		public T next() {
+			if(!hasNext()) throw new NoSuchElementException();
+			BinaryNode current = st.pop();
+			if(current.right!=NULL_NODE) st.push(current.right);
+			if(current.left!=NULL_NODE) st.push(current.left);
+			return current.getData();
+		}
+
+	}
+
+	public void insert(T item) {
+		root=root.insert(item);
+		
+	}
+
+}

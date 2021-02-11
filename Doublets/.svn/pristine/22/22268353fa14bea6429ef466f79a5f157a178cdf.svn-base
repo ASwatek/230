@@ -1,0 +1,86 @@
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Scanner;
+import java.util.Set;
+
+public class Links implements LinksInterface {
+	HashMap<String, LinkedHashSet<String>> wordMaps;
+
+	public Links(String fileName) {
+		this.wordMaps = new HashMap<>();
+
+		ArrayList<String> allWords = new ArrayList<>();
+		try {
+			FileReader fr = new FileReader(fileName);
+			Scanner currentWordScanner = new Scanner(fr);
+
+			while (currentWordScanner.hasNext()) {
+				allWords.add(currentWordScanner.next());
+
+				// FileReader fr2 = new FileReader(fileName);
+				// Scanner currentCompareScanner = new Scanner(fr2);
+				// int letterDiff = 0;
+				// LinkedHashSet<String> candidates = new LinkedHashSet<>();
+				// String currentWord = currentWordScanner.nextLine();
+				//
+				// while (currentCompareScanner.hasNextLine()) {
+				// letterDiff = 0;
+				// String compareWord = currentCompareScanner.nextLine();
+				// if (compareWord.length() == currentWord.length()) {
+				//
+				// for (int i = 0; i < compareWord.length(); i++) {
+				// if (compareWord.charAt(i) != currentWord.charAt(i)) {
+				// letterDiff++;
+				// }
+				// }
+				// if (letterDiff == 1) {
+				// candidates.add(compareWord);
+				// }
+				// }
+				// }
+			}
+		} catch (FileNotFoundException exception) {
+			exception.printStackTrace();
+		}
+		for (int i = 0; i < allWords.size(); i++) {
+			String start = allWords.get(i);
+			int numDiffs = 0;
+			LinkedHashSet<String> candidates = new LinkedHashSet<>();
+
+			for (int j = 0; j < allWords.size(); j++) {
+				String compare = allWords.get(j);
+				numDiffs = 0;
+
+				if (start.length() == compare.length()) {
+					for (int k = 0; k < start.length(); k++) {
+						if (start.charAt(k) != compare.charAt(k))
+							numDiffs++;
+					}
+					if (numDiffs == 1) {
+						candidates.add(compare);
+					}
+				}
+			}
+			wordMaps.put(start, candidates);
+		}
+	}
+
+	@Override
+	public Set<String> getCandidates(String word) {
+		if (!wordMaps.containsKey(word)) {
+			return null;
+		}
+		if (wordMaps.get(word).isEmpty())
+			return null;
+		return wordMaps.get(word);
+	}
+
+	@Override
+	public boolean exists(String word) {
+		return wordMaps.containsKey(word);
+	}
+
+}

@@ -1,0 +1,37 @@
+import java.util.Set;
+
+/**
+ * @author <<TODO>>
+ */
+public class Doublets {
+	private LinksInterface links;
+
+	public Doublets(LinksInterface links) {
+		this.links = links;
+	}
+
+	public static void main(String[] args) {
+		// TODO: write a text-based UI to find doublets.
+	}
+
+	public Chain findChain(String start, String end, ChainManager manager) {
+		
+		if(this.links.getCandidates(start) == null) {
+			return null;
+		}
+		
+		Set<String> startSet = this.links.getCandidates(start);
+		
+		Chain startChain = new Chain(startSet, start);
+		manager.add(startChain);
+		
+		Chain currentChain = manager.next();
+		
+		if (end.equals(currentChain.last)) {
+			return currentChain;
+		}
+		
+		return findChain(currentChain.last, end, manager);
+
+	}
+}

@@ -1,0 +1,637 @@
+package editortrees;
+
+// A node in a height-balanced binary tree with rank.
+// Except for the NULL_NODE (if you choose to use one), one node cannot
+// belong to two different trees.
+
+public class Node {
+	public static final Node NULL_NODE = new Node();
+
+	enum Code {
+		SAME, LEFT, RIGHT;
+		// Used in the displayer and debug string
+		public String toString() {
+			switch (this) {
+			case LEFT:
+				return "/";
+			case SAME:
+				return "=";
+			case RIGHT:
+				return "\\";
+			default:
+				throw new IllegalStateException();
+			}
+		}
+	}
+
+	// The fields would normally be private, but for the purposes of this class,
+	// we want to be able to test the results of the algorithms in addition to
+	// the
+	// "publicly visible" effects
+
+	Character element;
+	Node left, right; // subtrees
+	int rank; // inorder position of this node within its own subtree.
+	Code balance;
+	// Node parent; // You may want this field.
+	// Feel free to add other fields that you find useful
+	private DisplayableNodeWrapper dNW;
+
+	// You will probably want to add several other methods
+
+	// For the following methods, you should fill in the details so that they
+	// work correctly
+
+	public Node() {
+		this.element = null;
+		this.left = NULL_NODE;
+		this.right = NULL_NODE;
+		this.rank = 0;
+		this.balance = null;
+		this.dNW = new DisplayableNodeWrapper(this);
+
+	}
+
+	public Node(char ch) {
+		this.element = ch;
+		this.left = NULL_NODE;
+		this.right = NULL_NODE;
+		this.rank = 0;
+		this.balance = Code.SAME;
+		this.dNW = new DisplayableNodeWrapper(this);
+
+	}
+
+	public int height() {
+		if (this == NULL_NODE) {
+			return 0;
+		}
+		if (this.balance == Code.LEFT) {
+			return 1 + this.left.height();
+		}
+		return 1 + this.right.height();
+	}
+
+	public int size() {
+		if (this == NULL_NODE) {
+			return 0;
+		}
+		return this.rank + 1 + this.right.size();
+	}
+
+	public StringBuilder toString(StringBuilder stringB) {
+		if (this == NULL_NODE) {
+			return stringB;
+		}
+		this.left.toString(stringB);
+		stringB.append(this.element);
+		this.right.toString(stringB);
+
+		return stringB;
+	}
+
+	public StringBuilder toDebugString(StringBuilder stringBuilder) {
+		if (this == NULL_NODE) {
+			return stringBuilder;
+		}
+		stringBuilder.append(this.element);
+		stringBuilder.append(this.rank);
+		stringBuilder.append(this.balance);
+		stringBuilder.append(", ");
+		this.left.toDebugString(stringBuilder);
+		this.right.toDebugString(stringBuilder);
+		return stringBuilder;
+	}
+
+	public char get(int pos) {
+		if (pos > this.size() - 1 || pos < 0) {
+			throw new IndexOutOfBoundsException();
+		}
+
+		if (pos == this.rank) {
+			return this.element;
+		}
+
+		if (this.rank < pos) {
+			return this.right.get(pos - this.rank - 1);
+		} else {
+			return this.left.get(pos);
+		}
+	}
+
+	public NodeAndIntAndBoolAndChar add(char ch, int rotationCount) {
+		if (this == NULL_NODE) {
+			return new NodeAndIntAndBoolAndChar(new Node(ch), rotationCount, false, null);
+		}
+		NodeAndIntAndBoolAndChar temp = this.right.add(ch, rotationCount);
+		this.right = temp.node;
+
+		if (temp.bool) {
+			return new NodeAndIntAndBoolAndChar(this, temp.count, true, null);
+		}
+
+		if (this.balance == Code.RIGHT && this.balance == this.right.balance) {
+			return this.singleRotationLeft(rotationCount);
+		} else if (this.balance == Code.LEFT) {
+			this.balance = Code.SAME;
+			return new NodeAndIntAndBoolAndChar(this, rotationCount, true, null);
+		} else {
+			this.balance = Code.RIGHT;
+		}
+		return new NodeAndIntAndBoolAndChar(this, rotationCount, false, null);
+	}
+
+	public NodeAndIntAndBoolAndChar add(char ch, int rotationCount, int pos) {
+		if (pos < 0 || pos > this.size()) {
+			throw new IndexOutOfBoundsException();
+		}
+
+		if (this == NULL_NODE) {// reaches null
+			return new NodeAndIntAndBoolAndChar(new Node(ch), rotationCount, false, null);
+		}
+		NodeAndIntAndBoolAndChar temp = null;
+		if (pos > this.rank) {
+			temp = this.right.add(ch, rotationCount, pos - this.rank - 1);
+			this.right = temp.node;
+
+			if (temp.bool) {
+				return new NodeAndIntAndBoolAndChar(this, temp.count, true, null);
+			}
+
+			if (this.balance == Code.RIGHT) {
+				if (this.balance == this.right.balance) {
+					return this.singleRotationLeft(rotationCount);
+				} else if (this.right.balance == Code.LEFT) {
+					return this.doubleRotationLeft(rotationCount);
+				}
+			} else if (this.balance == Code.LEFT) {
+				this.balance = Code.SAME;
+				return new NodeAndIntAndBoolAndChar(this, rotationCount, true, null);
+			} else {
+				this.balance = Code.RIGHT;
+			}
+
+		} else {
+			temp = this.left.add(ch, rotationCount, pos);
+			this.rank++;
+			this.left = temp.node;
+
+			if (temp.bool) {
+				return new NodeAndIntAndBoolAndChar(this, temp.count, true, null);
+			}
+
+			if (this.balance == Code.LEFT) {
+				if (this.balance == this.left.balance) {
+					return this.singleRotationRight(rotationCount, false);
+				} else if (this.left.balance == Code.RIGHT) {
+					return this.doubleRotationRight(rotationCount);
+				}
+			} else if (this.balance == Code.RIGHT) {
+				this.balance = Code.SAME;
+				return new NodeAndIntAndBoolAndChar(this, rotationCount, true, null);
+			} else {
+				this.balance = Code.LEFT;
+			}
+		}
+
+		return new NodeAndIntAndBoolAndChar(this, rotationCount, false, null);
+	}
+
+	private NodeAndIntAndBoolAndChar doubleRotationRight(int rotationCount) {
+		Code leftRightBalance = this.left.right.balance;
+		NodeAndIntAndBoolAndChar doubleRightNIB = this.left.singleRotationLeft(rotationCount);
+		this.left = doubleRightNIB.node;
+		doubleRightNIB = this.singleRotationRight(doubleRightNIB.count, false);
+		if (leftRightBalance == Code.LEFT) {
+			doubleRightNIB.node.right.balance = Code.RIGHT;
+			doubleRightNIB.node.left.balance = Code.SAME;
+		} else if (leftRightBalance == Code.RIGHT) {
+			doubleRightNIB.node.right.balance = Code.SAME;
+			doubleRightNIB.node.left.balance = Code.LEFT;
+		} else {
+			doubleRightNIB.node.right.balance = Code.SAME;
+			doubleRightNIB.node.left.balance = Code.SAME;
+		}
+		return doubleRightNIB;
+	}
+
+	private NodeAndIntAndBoolAndChar doubleRotationLeft(int rotationCount) {
+		Code rightLeftBalance = this.right.left.balance;
+		NodeAndIntAndBoolAndChar doubleLeftNIB = this.right.singleRotationRight(rotationCount, false);
+		this.right = doubleLeftNIB.node;
+		doubleLeftNIB = this.singleRotationLeft(doubleLeftNIB.count);
+		if (rightLeftBalance == Code.LEFT) {
+			doubleLeftNIB.node.right.balance = Code.RIGHT;
+			doubleLeftNIB.node.left.balance = Code.SAME;
+		} else if (rightLeftBalance == Code.RIGHT) {
+			doubleLeftNIB.node.right.balance = Code.SAME;
+			doubleLeftNIB.node.left.balance = Code.LEFT;
+		} else {
+			doubleLeftNIB.node.right.balance = Code.SAME;
+			doubleLeftNIB.node.left.balance = Code.SAME;
+		}
+		return doubleLeftNIB;
+	}
+
+	private NodeAndIntAndBoolAndChar singleRotationLeft(int rotationCount) {
+		Node newRoot = this.right;
+		Node newLeft = this;
+
+		Node temp = this.right.left;
+
+		newLeft.right = temp;
+		newRoot.left = newLeft;
+
+		newRoot.balance = Code.SAME;
+		newLeft.balance = Code.SAME;
+
+		newRoot.rank += (1 + this.rank);
+
+		return new NodeAndIntAndBoolAndChar(newRoot, rotationCount + 1, true, null);
+	}
+
+	private NodeAndIntAndBoolAndChar singleRotationRight(int rotationCount, boolean isDelete) {
+		Node newRoot = this.left;
+		Node newRight = this;
+		int leftSize = this.left.rank;
+		int rightSize = this.rank - this.left.rank - 1;
+
+		int newRightRank = this.rank - (this.left.rank + 1);
+		int newRootRank = this.left.rank;
+
+		Node temp = this.left.right;
+
+		newRight.left = temp;
+		newRoot.right = newRight;
+		if(isDelete) {
+			if(leftSize <= rightSize) {
+				newRoot.balance = Code.RIGHT;
+				newRight.balance = Code.LEFT;
+			} else {
+				newRoot.balance = Code.SAME;
+				newRight.balance = Code.SAME;
+			}
+		} else {
+			newRoot.balance = Code.SAME;
+			newRight.balance = Code.SAME;	
+		}
+
+		newRoot.rank = newRootRank;
+		newRight.rank = newRightRank; // Need to find how to calcuate this
+
+		return new NodeAndIntAndBoolAndChar(newRoot, rotationCount + 1, true, null);
+	}
+
+	class NodeAndIntAndBoolAndChar {
+		int count;
+		Node node;
+		boolean bool;
+		Character character;
+
+		public NodeAndIntAndBoolAndChar(Node node, int count, boolean bool, Character character) {
+			this.count = count;
+			this.node = node;
+			this.bool = bool;
+			this.character = character;
+		}
+	}
+
+	public int slowSize() {
+		if (this == NULL_NODE) {
+			return 0;
+		}
+		return 1 + this.left.slowSize() + this.right.slowSize();
+	}
+
+	public int slowHeight() {
+		if (this == NULL_NODE) {
+			return 0;
+		}
+		return 1 + Math.max(this.left.slowSize(), this.right.slowSize());
+	}
+
+	public DisplayableNodeWrapper getDisplayableNodePart() {
+		return this.dNW;
+	}
+
+	public boolean hasLeft() {
+		return this.left != NULL_NODE;
+	}
+
+	public Node getLeft() {
+		return this.left;
+	}
+
+	public Node getRight() {
+		return this.right;
+	}
+
+	public boolean hasRight() {
+		return this.right != NULL_NODE;
+	}
+
+	public boolean hasParent() {
+		return true;
+	}
+
+	public Node getParent() {
+		return null;
+	}
+
+	public int getRank() {
+		return this.rank;
+	}
+
+	public Code getBalance() {
+		return this.balance;
+	}
+
+	public String getBalanceToString() {
+		return this.balance.toString();
+	}
+
+	public char getElement() {
+		return this.element;
+	}
+
+	public Node buildTree(Node e) {
+		Node temp = NULL_NODE;
+		if (e.hasLeft() && e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = e.getBalance();
+			temp.rank = e.getRank();
+			temp.left = temp.left.buildTree(e.left);
+			temp.right = temp.right.buildTree(e.right);
+		}
+		if (e.hasLeft() && !e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = e.getBalance();
+			temp.rank = e.getRank();
+			temp.left = temp.left.buildTree(e.left);
+		}
+		if (!e.hasLeft() && e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = e.getBalance();
+			temp.rank = e.getRank();
+			temp.right = temp.right.buildTree(e.right);
+		}
+		if (!e.hasLeft() && !e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = Code.SAME;
+		}
+		return temp;
+	}
+
+	public NodeAndIntAndBoolAndChar delete(int pos, int rotationCount) {
+		if (pos < 0 || pos > this.size() - 1) {
+			throw new IndexOutOfBoundsException();
+		}
+		if (pos < this.rank) { // left
+			this.rank--;
+			NodeAndIntAndBoolAndChar tempLeft = this.left.delete(pos, rotationCount);
+			this.left = tempLeft.node;
+			if (tempLeft.bool) {
+				return new NodeAndIntAndBoolAndChar(this, tempLeft.count, true, tempLeft.character);
+			}
+			if (this.balance == Code.SAME) {
+				if (tempLeft.count != rotationCount) {
+					this.balance = Code.RIGHT;
+					return new NodeAndIntAndBoolAndChar(this, tempLeft.count, true, tempLeft.character);
+				}
+				this.balance = Code.RIGHT;
+				return new NodeAndIntAndBoolAndChar(this, tempLeft.count, true, tempLeft.character);
+			} else if (this.balance == Code.RIGHT) {
+				NodeAndIntAndBoolAndChar temp;
+				if (this.right.balance == Code.RIGHT || this.right.balance == Code.SAME) {
+					temp = this.singleRotationLeft(tempLeft.count);
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, tempLeft.character);
+				} else if (this.right.balance == Code.LEFT) {
+					temp = this.doubleRotationLeft(tempLeft.count);
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, tempLeft.character);
+				}
+			} else {
+				if (tempLeft.count != rotationCount) {
+					this.balance = Code.SAME;
+					return new NodeAndIntAndBoolAndChar(this, tempLeft.count, false, tempLeft.character);
+				}
+				if (this.left.hasChildren() && !this.right.hasChildren()) {
+					this.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(this, tempLeft.count, true, tempLeft.character);
+				} else {
+					this.balance = Code.SAME;
+					return new NodeAndIntAndBoolAndChar(this, tempLeft.count, false, tempLeft.character);
+				}
+			}
+
+		}
+		if (pos > this.rank) { // right
+			int newIndex = pos - this.rank - 1;
+			NodeAndIntAndBoolAndChar tempRight = this.right.delete(newIndex, rotationCount);
+			this.right = tempRight.node;
+			if (tempRight.bool) {
+				return new NodeAndIntAndBoolAndChar(this, tempRight.count, true, tempRight.character);
+			}
+			if (this.balance == Code.SAME) {
+				if (tempRight.count != rotationCount) {
+					this.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, false, tempRight.character);
+				}
+				
+					this.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, true, tempRight.character);
+			} else if (this.balance == Code.RIGHT) {
+				if (tempRight.count != rotationCount) {
+					this.balance = Code.SAME;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, false, tempRight.character);
+				}
+				if (this.right.hasChildren() && !this.left.hasChildren()) {
+					this.balance = Code.RIGHT;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, true, tempRight.character);
+				} else {
+					this.balance = Code.SAME;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, false, tempRight.character);
+				}
+			} else {
+				NodeAndIntAndBoolAndChar temp;
+				if (this.left.balance == Code.LEFT || this.left.balance == Code.SAME) {
+					temp = this.singleRotationRight(tempRight.count, true);
+					if(temp.node.balance != this.left.balance && this.left.balance == Code.SAME) {
+						return new NodeAndIntAndBoolAndChar(temp.node, temp.count, true, tempRight.character);
+					}
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, tempRight.character);
+				} else if (this.left.balance == Code.RIGHT) {
+					temp = this.doubleRotationRight(tempRight.count);
+					if(temp.node.balance != this.left.balance && this.left.balance == Code.SAME) {
+						return new NodeAndIntAndBoolAndChar(temp.node, temp.count, true, tempRight.character);
+					}
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, tempRight.character);
+				}
+				if (this.left.hasChildren() && !this.right.hasChildren()) {
+					this.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, true, tempRight.character);
+				} else {
+					this.balance = Code.SAME;
+					return new NodeAndIntAndBoolAndChar(this, tempRight.count, false, tempRight.character);
+				}
+			}
+		}
+
+		if (pos - this.rank - 1 == right.rank) { // Remove is to the right
+			char returnChar = right.element;
+			if (this.right.right == NULL_NODE && this.right.left == NULL_NODE) {// Leaf
+				this.right = NULL_NODE;
+				if (this.balance == Code.LEFT) {
+					NodeAndIntAndBoolAndChar temp;
+					if (left.balance == Code.LEFT || this.left.balance == Code.SAME) {
+						temp = this.singleRotationRight(rotationCount, true);
+					} else if (left.balance == Code.RIGHT) {
+						temp = this.doubleRotationRight(rotationCount);
+					} else {
+						temp = new NodeAndIntAndBoolAndChar(this, rotationCount, false, returnChar);
+					}
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, returnChar);
+				} else if (this.balance == Code.SAME) {
+					this.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(this, rotationCount, false, returnChar);
+				}
+				this.balance = Code.SAME;
+				return new NodeAndIntAndBoolAndChar(this, rotationCount, false, returnChar);
+			} else if (this.right.hasLeft() && !this.right.hasRight()) {
+				return new NodeAndIntAndBoolAndChar(this.right.left, rotationCount, false, returnChar);
+			} else if (!this.right.hasLeft() && this.right.hasRight()) {
+				return new NodeAndIntAndBoolAndChar(this.right.right, rotationCount, false, returnChar);
+			} else {
+				Node newLeft = this.right.left.left;
+				int newRank = this.right.left.rank;
+				NodeAndIntAndBoolAndChar newData = this.right.right.delete(0, rotationCount);
+				Node newRoot = new Node(newData.character);
+				newRoot.rank = newRank;
+				newRoot.right = newData.node;
+				newRoot.left = newLeft;
+
+				return new NodeAndIntAndBoolAndChar(newRoot, newData.count, newData.bool, returnChar);
+
+			}
+		} else if (pos == this.rank - 1) { // Remove is to the left
+			char returnChar = this.left.element;
+			if (this.left.right == NULL_NODE && this.left.left == NULL_NODE) { // Leaf
+																				// case
+				this.left = NULL_NODE;
+				this.rank--;
+				if (this.balance == Code.RIGHT) {
+					NodeAndIntAndBoolAndChar temp;
+					if (this.right.balance == Code.LEFT) {
+						temp = this.doubleRotationLeft(rotationCount);
+					} else {
+						temp = this.singleRotationLeft(rotationCount);
+					}
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, returnChar);
+				} else if (this.balance == Code.SAME) {
+					this.balance = Code.RIGHT;
+				} else {
+					this.balance = Code.SAME;
+				}
+				return new NodeAndIntAndBoolAndChar(this, rotationCount, false, returnChar);
+			} else if (this.left.hasLeft() && this.left.hasRight()) {
+				Node newLeft = this.left.left.left;
+				int newRank = this.left.left.rank;
+				NodeAndIntAndBoolAndChar newData = this.left.right.delete(0, rotationCount);
+				Node newRoot = new Node(newData.character);
+				newRoot.rank = newRank;
+				newRoot.right = newData.node;
+				newRoot.left = newLeft;
+
+				return new NodeAndIntAndBoolAndChar(newRoot, newData.count, newData.bool, returnChar);
+
+			} else if (this.left.hasLeft()) {
+				return new NodeAndIntAndBoolAndChar(this.left.left, rotationCount, false, returnChar);
+			}
+
+			return new NodeAndIntAndBoolAndChar(left.right, rotationCount, false, returnChar); // only
+																								// right
+
+		}
+
+		if (pos == this.rank) {// root deletion
+			if (!this.hasChildren()) {// just root
+				return new NodeAndIntAndBoolAndChar(NULL_NODE, rotationCount, false, this.element);
+			}
+			if (this.hasLeft() && !this.hasRight()) {// only left
+				return new NodeAndIntAndBoolAndChar(this.left, rotationCount, false, this.element);
+			}
+			if (!this.hasLeft() && this.hasRight()) {// only right
+				return new NodeAndIntAndBoolAndChar(this.right, rotationCount, false, this.element);
+			}
+			// two children, so get in-order successor
+			// iOS from deleting index 0 on right subtree, then recreating that
+			// single, childless node as root
+			char removed = this.element;
+			Node newLeft = this.left;
+			int newRank = this.rank;
+			Code oldBalance = this.balance;
+
+			NodeAndIntAndBoolAndChar newData = this.right.delete(0, rotationCount);
+			Node newRoot = new Node(newData.character);
+			newRoot.rank = newRank;
+			newRoot.balance = oldBalance;
+			newRoot.right = newData.node;// should always be NN
+			newRoot.left = newLeft;
+
+			/**
+			 * NOT ENTIRELY SURE ABOUT THIS HERES BIG MARKINGS IF ITS WRONG TO
+			 * FIND LATER
+			 */
+			if (newData.bool) {
+				return new NodeAndIntAndBoolAndChar(newRoot, newData.count, newData.bool, removed);
+			}
+			if (newRoot.balance == Code.SAME) {
+				if (newRoot.right == NULL_NODE) {
+					newRoot.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(newRoot, rotationCount, true, removed);
+				} else if (newData.count == rotationCount) {
+					newRoot.balance = Code.SAME;
+				} else {
+					newRoot.balance = Code.LEFT;
+					return new NodeAndIntAndBoolAndChar(newRoot, rotationCount, true, removed);
+				}
+			} else if (newRoot.balance == Code.LEFT) {
+				if (newData.count == rotationCount) {
+					NodeAndIntAndBoolAndChar temp = null;
+					if (newRoot.left.balance == Code.LEFT || newRoot.left.balance == Code.SAME) {
+						temp = newRoot.singleRotationRight(rotationCount, true);
+					} else if (newRoot.left.balance == Code.RIGHT) {
+						temp = newRoot.doubleRotationRight(rotationCount);
+					}
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, removed);
+				}
+			} else {
+				if (newRoot.right == NULL_NODE || newRoot.right.balance == Code.SAME) {
+					newRoot.balance = Code.SAME;
+				} else if (newData.count == rotationCount) {
+					NodeAndIntAndBoolAndChar temp = newRoot.singleRotationLeft(rotationCount);
+					return new NodeAndIntAndBoolAndChar(temp.node, temp.count, false, removed);
+				}
+			}
+			// if(newRoot.balance == Code.SAME) {
+			// newRoot.balance = Code.LEFT;
+			// } else if(newRoot.balance == Code.RIGHT) {
+			// newRoot.balance = Code.SAME;
+			// } else {
+			// return temp = this.singleRotationRight(rotationCount);
+			// }
+			/**
+			 * MIGHT BE WRONG SHOULD TOTALLY CHECK THIS IF THERE ARE ROTATION
+			 * ISSUES LATER
+			 */
+
+			return new NodeAndIntAndBoolAndChar(newRoot, newData.count, newData.bool, removed);
+
+		}
+		return null;
+	}
+
+	private boolean hasChildren() {
+		return this.hasLeft() || this.hasRight();
+	}
+
+}

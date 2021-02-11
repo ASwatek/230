@@ -1,0 +1,370 @@
+package editortrees;
+
+// A node in a height-balanced binary tree with rank.
+// Except for the NULL_NODE (if you choose to use one), one node cannot
+// belong to two different trees.
+
+public class Node {
+	public static final Node NULL_NODE = new Node();
+	
+	enum Code {
+		SAME, LEFT, RIGHT;
+		// Used in the displayer and debug string
+		public String toString() {
+			switch (this) {
+				case LEFT:
+					return "/";
+				case SAME:
+					return "=";
+				case RIGHT:
+					return "\\";
+				default:
+					throw new IllegalStateException();
+			}
+		}
+	}
+	
+	// The fields would normally be private, but for the purposes of this class, 
+	// we want to be able to test the results of the algorithms in addition to the
+	// "publicly visible" effects
+	
+	Character element;            
+	Node left, right; // subtrees
+	int rank;         // inorder position of this node within its own subtree.
+	Code balance; 
+	// Node parent;  // You may want this field.
+	// Feel free to add other fields that you find useful
+	private DisplayableNodeWrapper dNW ;
+
+	// You will probably want to add several other methods
+
+	// For the following methods, you should fill in the details so that they work correctly
+	
+	public Node() {
+		this.element = null;
+		this.left = NULL_NODE;
+		this.right = NULL_NODE;
+		this.rank = 0;
+		this.balance = null;
+		this.dNW = new DisplayableNodeWrapper(this);
+		
+	}
+	
+	public Node(char ch) {
+		this.element = ch;
+		this.left = NULL_NODE;
+		this.right = NULL_NODE;
+		this.rank = 0;
+		this.balance = Code.SAME;
+		this.dNW = new DisplayableNodeWrapper(this);
+		
+		
+	}
+
+	public int height() {
+		if(this == NULL_NODE) {
+			return 0;
+		}
+		
+		return 1 + Math.max(this.right.height(), this.left.height());
+	}
+
+	public int size() {
+		if(this == NULL_NODE) {
+			 return 0;
+		}
+		return this.rank + 1 + this.right.size();
+	}
+	
+	public StringBuilder toString(StringBuilder stringB) {
+		if(this == NULL_NODE) {
+			return stringB;
+		}
+		this.left.toString(stringB);
+		stringB.append(this.element);
+		this.right.toString(stringB);
+	
+		return stringB;
+	}
+
+	public StringBuilder toDebugString(StringBuilder stringBuilder) {
+		if(this == NULL_NODE) {
+			return stringBuilder;
+		}
+		stringBuilder.append(this.element);
+		stringBuilder.append(this.rank);
+		stringBuilder.append(this.balance);
+		stringBuilder.append(", ");
+		this.left.toDebugString(stringBuilder);
+		this.right.toDebugString(stringBuilder);
+		return stringBuilder;
+	}
+	
+
+	public char get(int pos) {
+		if(pos > this.size() - 1 || pos < 0) {
+			throw new IndexOutOfBoundsException();
+		}
+		
+		if(pos == this.rank) {
+			return this.element;
+		}
+		
+		if(this.rank < pos) {
+			return this.right.get(pos - this.rank - 1);
+		} else {
+			return this.left.get(pos);
+		}
+	}
+
+	public NodeAndIntAndBool add(char ch, int rotationCount) {
+		if(this == NULL_NODE) {
+			return new NodeAndIntAndBool(new Node(ch), rotationCount, false);
+		}
+		NodeAndIntAndBool temp = this.right.add(ch, rotationCount);
+		this.right = temp.node;
+		
+		if(temp.bool) {
+			return new NodeAndIntAndBool(this, temp.count, true);
+		}
+		
+		if(this.balance == Code.RIGHT && this.balance == this.right.balance) {
+			return this.singleRotationLeft(rotationCount);
+		} else if(this.balance == Code.LEFT){
+			this.balance = Code.SAME;
+			return new NodeAndIntAndBool(this, rotationCount, true);
+		} else {
+			this.balance = Code.RIGHT;
+		}
+		return new NodeAndIntAndBool(this, rotationCount, false);
+	}
+	
+	public NodeAndIntAndBool add(char ch, int rotationCount, int pos) {
+		if(pos < 0 || pos > this.size()) {
+			throw new IndexOutOfBoundsException();
+		}
+		
+		if(this == NULL_NODE){//reaches null
+			return new NodeAndIntAndBool(new Node(ch), rotationCount, false);
+		}
+		NodeAndIntAndBool temp = null;
+		if(pos > this.rank){
+			temp = this.right.add(ch, rotationCount, pos-this.rank-1);
+			this.right = temp.node;
+			
+			if(temp.bool) {
+				return new NodeAndIntAndBool(this, temp.count, true);
+			}
+			
+			if(this.balance == Code.RIGHT) {
+				if(this.balance == this.right.balance) {
+					return this.singleRotationLeft(rotationCount);
+				} else if (this.right.balance == Code.LEFT) {
+					return this.doubleRotationLeft(rotationCount);
+				}
+			} else if(this.balance == Code.LEFT){
+				this.balance = Code.SAME;
+				return new NodeAndIntAndBool(this, rotationCount, true);
+			} else {
+				this.balance = Code.RIGHT;
+			}
+			
+		} else {
+			temp = this.left.add(ch, rotationCount, pos);
+			this.rank++;
+			this.left = temp.node;
+			
+			if(temp.bool) {
+				return new NodeAndIntAndBool(this, temp.count, true);
+			}
+			
+			if(this.balance == Code.LEFT) {
+				if(this.balance == this.left.balance) {
+					return this.singleRotationRight(rotationCount);
+				} else if (this.left.balance == Code.RIGHT) {
+					return this.doubleRotationRight(rotationCount);
+				}
+			} else if(this.balance == Code.RIGHT){
+				this.balance = Code.SAME;
+				return new NodeAndIntAndBool(this, rotationCount, true);
+			} else {
+				this.balance = Code.LEFT;
+			}
+		}		
+		
+		return new NodeAndIntAndBool(this, rotationCount, false);
+	}
+
+	private NodeAndIntAndBool doubleRotationRight(int rotationCount) {
+		Code leftRightBalance = this.left.right.balance;
+		NodeAndIntAndBool doubleRightNIB = this.left.singleRotationLeft(rotationCount);
+		this.left = doubleRightNIB.node;
+		doubleRightNIB = this.singleRotationRight(doubleRightNIB.count);
+		if(leftRightBalance == Code.LEFT) {
+			doubleRightNIB.node.right.balance = Code.RIGHT;
+			doubleRightNIB.node.left.balance = Code.SAME;
+		} else if(leftRightBalance == Code.RIGHT) {
+			doubleRightNIB.node.right.balance = Code.SAME;
+			doubleRightNIB.node.left.balance = Code.LEFT;
+		} else {
+			doubleRightNIB.node.right.balance = Code.SAME;
+			doubleRightNIB.node.left.balance = Code.SAME;
+		}
+		return doubleRightNIB;
+	}
+	
+	private NodeAndIntAndBool doubleRotationLeft(int rotationCount) {
+		Code rightLeftBalance = this.right.left.balance;
+		NodeAndIntAndBool doubleLeftNIB = this.right.singleRotationRight(rotationCount);
+		this.right = doubleLeftNIB.node;
+		doubleLeftNIB = this.singleRotationLeft(doubleLeftNIB.count);
+		if(rightLeftBalance == Code.LEFT) {
+			doubleLeftNIB.node.right.balance = Code.RIGHT;
+			doubleLeftNIB.node.left.balance = Code.SAME;
+		} else if(rightLeftBalance == Code.RIGHT) {
+			doubleLeftNIB.node.right.balance = Code.SAME;
+			doubleLeftNIB.node.left.balance = Code.LEFT;
+		} else {
+			doubleLeftNIB.node.right.balance = Code.SAME;
+			doubleLeftNIB.node.left.balance = Code.SAME;
+		}
+		return doubleLeftNIB;
+	}
+
+	private NodeAndIntAndBool singleRotationLeft(int rotationCount) {
+		Node newRoot = this.right;
+		Node newLeft = this;
+		
+		Node temp = this.right.left;
+		
+		newLeft.right = temp;
+		newRoot.left = newLeft;
+		
+		newRoot.balance = Code.SAME;
+		newLeft.balance = Code.SAME;
+		
+		newRoot.rank += (1 + this.rank);
+		
+		return new NodeAndIntAndBool(newRoot, rotationCount + 1, true);
+	}
+	
+	private NodeAndIntAndBool singleRotationRight(int rotationCount){
+		Node newRoot = this.left;
+		Node newRight = this;
+		
+		int newRightRank = this.rank - (this.left.rank + 1);
+		int newRootRank = this.left.rank;
+		
+		Node temp = this.left.right;
+		
+		newRight.left = temp;
+		newRoot.right = newRight;
+		
+		newRoot.balance = Code.SAME;
+		newRight.balance = Code.SAME;
+		
+		newRoot.rank = newRootRank;
+		newRight.rank = newRightRank; // Need to find how to calcuate this
+		
+		return new NodeAndIntAndBool(newRoot, rotationCount + 1, true);
+	}
+	
+	class NodeAndIntAndBool {
+		int count;
+		Node node;
+		boolean bool;
+		
+		public NodeAndIntAndBool(Node node, int count, boolean bool) {
+			this.count = count;
+			this.node = node;
+			this.bool = bool;
+		}
+	}
+	
+
+	public int slowSize() {
+		if(this == NULL_NODE) {
+			return 0;
+		}
+		return 1 + this.left.slowSize() + this.right.slowSize();
+	}
+
+	public int slowHeight() {
+		if(this == NULL_NODE) {
+			return 0;
+		}
+		return 1 + Math.max(this.left.slowSize(), this.right.slowSize());
+	}
+
+	public DisplayableNodeWrapper getDisplayableNodePart() {
+		return this.dNW;
+	}
+	
+	public boolean hasLeft() {
+		return this.left != NULL_NODE;
+	}
+	
+	public Node getLeft() {
+		return this.left;
+	}
+
+	public Node getRight() {
+		return this.right;
+	}
+
+	public boolean hasRight() {
+		return this.right != NULL_NODE;
+	}
+	
+	public boolean hasParent() {
+		return true;
+	}
+	
+	public Node getParent() {
+		return null;
+	}
+
+	public int getRank() {
+		return this.rank;
+	}
+
+	public Code getBalance() {
+		return this.balance;
+	}
+	
+	public String getBalanceToString() {
+		return this.balance.toString();
+	}
+	
+	public char getElement() {
+		return this.element;
+	}
+
+	public Node buildTree(Node e) {
+		Node temp = NULL_NODE;
+		if(e.hasLeft() && e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = e.getBalance();
+			temp.rank = e.getRank();
+			temp.left = temp.left.buildTree(e.left);
+			temp.right = temp.right.buildTree(e.right);
+		}
+		if(e.hasLeft() && !e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = e.getBalance();
+			temp.rank = e.getRank();
+			temp.left = temp.left.buildTree(e.left);
+		}
+		if(!e.hasLeft() && e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = e.getBalance();
+			temp.rank = e.getRank();
+			temp.right = temp.right.buildTree(e.right);
+		}
+		if(!e.hasLeft() && !e.hasRight()) {
+			temp = new Node(e.getElement());
+			temp.balance = Code.SAME;
+		}
+		return temp;
+	}
+}

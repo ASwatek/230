@@ -1,0 +1,107 @@
+package evaluator;
+
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.util.Stack;
+
+public class PostfixEvaluator extends Evaluator {
+	Stack<Integer> operands;
+	ArrayList<Character> operatorsList;
+	Stack<Character> operators;
+	
+	public PostfixEvaluator(){
+		this.operands=new Stack<Integer>();
+		this.operatorsList = new ArrayList<Character>();
+		this.operatorsList.add('/');
+		this.operatorsList.add('*');
+		this.operatorsList.add('+');
+		this.operatorsList.add('-');
+		this.operatorsList.add('^');
+		this.operators = new Stack<Character>();
+	}
+	
+	//puts ints in stack; hits operator then pops the top two and pushes the result to stack; continues to next operator
+	@Override
+	public int evaluate(String expression) throws ArithmeticException {
+		Scanner charChecker = new Scanner(expression);
+		charChecker.useDelimiter(" ");
+		
+		
+		for(int i=0; i<expression.length(); i++){
+//			char current;
+//			if(charChecker.hasNextInt()) operands.push(charChecker.nextInt());
+//			else if(charChecker.hasNext()){
+//				current = charChecker.next().charAt(0);
+//				operators.push(current);
+////				if(charChecker.hasNext() && operatorsList.contains(charChecker.next())) throw new ArithmeticException();
+//				//above trying to check if there are two operators in a row; if: bad formatting and exceptioned
+//			}
+			
+			
+			
+			
+			
+			
+	//18/21
+			//works for all calculations, but needs to be fixed to work with error exceptions
+			if(charChecker.hasNextInt()){
+				operands.push(charChecker.nextInt());
+			} else if(charChecker.hasNext()){
+//				if(operands.peek()==null){
+//					throw new ArithmeticException();
+//				}
+				char current = charChecker.next().charAt(0);
+//				if(Character.isDigit(current)) throw new ArithmeticException();
+				int second = operands.pop();
+				if(operands.isEmpty()) throw new ArithmeticException();//not enough operands for the operators
+				int first = operands.pop();
+				if(!operatorsList.contains(current)) throw new ArithmeticException();//invalid input
+				if(current=='/') operands.push(first/second);
+				else if(current=='*') operands.push(first*second);
+				else if(current=='+') operands.push(first+second);
+				else if(current=='-') operands.push(first-second);
+				else if(current=='^') operands.push((int)(Math.pow(first, second)));
+			}
+			
+			
+			
+			
+	//11/21	
+			//works somewhat, but puts 24 as two separate ints: 2 4
+//			char current = expression.charAt(i);
+			
+//			if(Character.isDigit(current)){	//if number, add it to stack
+//				System.out.println(Character.getNumericValue(current));
+//				operands.push(Character.getNumericValue(current));
+//			} else if(operatorsList.contains(current)){	//if operator, take top two operands then apply operator to the two
+//				int second = operands.pop();	//second is removed first
+//				int first = operands.pop();
+//				if(current=='/') operands.push(first/second);
+//				else if(current=='*') operands.push(first*second);
+//				else if(current=='+') operands.push(first+second);
+//				else if(current=='-') operands.push(first-second);
+//				else if(current=='^') operands.push((int)(Math.pow(first, second)));
+////				operands.push(first + current + second);
+//			}
+		}
+		
+		
+		
+		
+	//used in conjunction with 13/21, but drops it to 7/21. also probably violates the linear runtime
+//		while(!operands.isEmpty()){
+//			if(operands.size()!=operators.size()+1) throw new ArithmeticException();
+//			int second = operands.pop();
+//			int first = operands.pop();
+//			char current = operators.pop();
+//			if(current=='/') operands.push(first/second);
+//			else if(current=='*') operands.push(first*second);
+//			else if(current=='+') operands.push(first+second);
+//			else if(current=='-') operands.push(first-second);
+//			else if(current=='^') operands.push((int)(Math.pow(first, second)));
+//		}
+		charChecker.close();
+		return operands.peek();
+	}
+
+}

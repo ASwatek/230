@@ -1,0 +1,89 @@
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
+/**
+ * @author <<TODO>>
+ */
+public class Doublets {
+	private LinksInterface links;
+	private HashSet<String> seenWords;
+
+	public Doublets(LinksInterface links) {
+		this.links = links;
+		this.seenWords=new HashSet<>();
+	}
+
+	public static void main(String[] args) {
+		// TODO: write a text-based UI to find doublets.
+	}
+
+	public Chain findChain(String start, String end, ChainManager manager) {
+		
+		if(this.links.getCandidates(start) == null) {
+			return null;
+		}
+		
+		Set<String> startSet = this.links.getCandidates(start);
+		
+		Iterator<String> startSetIterator = startSet.iterator();
+		
+		while (startSetIterator.hasNext()) {
+			String currentString = startSetIterator.next();	
+			
+			Chain startChain = new Chain(startSet, currentString);
+		
+			Chain helperCallResult = findChainHelper(startChain, end, manager);
+			if(helperCallResult != null) {
+				return helperCallResult;
+			}
+		}
+		
+		return null;
+
+	}
+	
+	public Chain findChainHelper(Chain startChain, String end, ChainManager manager){
+//		if(this.links.getCandidates(start) == null) {
+//			return null;
+//		}
+//		this.alreadySeen(start);
+		
+//		Set<String> startSet = this.links.getCandidates(start);
+//		System.out.println("startSet " + startSet.toString());
+		
+//		Chain startChain = new Chain(startSet, start);
+//		System.out.println("startChain " + startChain.toString());
+		manager.add(startChain);
+		
+//		Chain currentChain = manager.next();
+//		System.out.println(currentChain.last);
+//		System.out.println("manager next " + currentChain.toString());
+		if(alreadySeen(startChain.last)){
+//			System.out.println("null");
+			return null;
+		}
+		seenWords.add(startChain.last);
+		
+		if (end.equals(startChain.last)) {
+			
+			return startChain;
+		}
+
+		System.out.println();
+		
+		if(this.links.getCandidates(startChain.last) == null) {
+			return null;
+		}
+		
+		Set<String> newStartSet = this.links.getCandidates(startChain.last);
+		
+		Chain newChain = new Chain(newStartSet, startChain.last);
+		
+		return findChainHelper(newChain, end, manager);
+	}
+	
+	public boolean alreadySeen(String lastWord){
+		return (seenWords.contains(lastWord));
+	}
+}

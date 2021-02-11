@@ -1,0 +1,58 @@
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+public class Chain implements Iterable<String> {
+
+	LinkedHashSet<String> set;
+	String last;
+
+	public Chain() {
+		this.set = new LinkedHashSet<>();
+		this.last = null;
+
+	}
+
+	public Chain(Set<String> set, String word) {
+		this.set = new LinkedHashSet<>();
+		
+		this.set.addAll(set);
+		
+		this.set.add(word);
+		this.last = word;
+	}
+
+	@Override
+	public Iterator<String> iterator() {
+		return this.set.iterator();
+	}
+
+	public int length() {
+		Iterator<String> setIterator = this.iterator();
+
+		int count = 0;
+
+		while (setIterator.hasNext()) {
+			setIterator.next();
+			count++;
+		}
+
+		return count;
+	}
+
+	public boolean contains(String word) {
+		return this.set.contains(word);
+	}
+
+	public Chain addLast(String string) {
+
+		return new Chain(this.set, string);
+	}
+
+	public String getLast() {
+		return this.last;
+	}
+	
+
+
+}

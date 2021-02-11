@@ -1,0 +1,236 @@
+package graphs;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+
+public class AdjacencyListGraph<T> extends Graph<T> {
+
+	Map<T,Vertex> keyToVertex;
+	int numEdges;
+	
+	private class Vertex {
+		T key;
+		List<Vertex> successors;
+		List<Vertex> predecessors;
+		
+		Vertex(T key) {
+			this.key = key;
+			this.successors = new ArrayList<Vertex>();
+			this.predecessors = new ArrayList<Vertex>();
+		}
+		
+		@Override
+		public int hashCode(){
+			return this.key.hashCode();
+		}
+		
+	}
+	
+	AdjacencyListGraph(Set<T> keys) {
+		this.keyToVertex = new HashMap<T,Vertex>();
+		for (T key : keys) {
+			Vertex v = new Vertex(key);
+			this.keyToVertex.put(key, v);
+		}		
+	}
+
+	@Override
+	public int size() {
+		return keyToVertex.size();
+	}
+
+	@Override
+	public int numEdges() {
+		return this.numEdges;
+	}
+
+	@Override
+	public boolean addEdge(T from, T to) {
+		if(!this.keyToVertex.containsKey(from) || !this.keyToVertex.containsKey(to)){
+			throw new NoSuchElementException();
+		}
+		Vertex toCheck = this.keyToVertex.get(from);
+		Vertex other = this.keyToVertex.get(to);
+		
+		if(toCheck.successors.contains(other) || other.predecessors.contains(toCheck)){
+			return false;
+		}
+		
+		Vertex newTo = new Vertex(to);
+		newTo.successors = this.keyToVertex.get(to).successors;
+		newTo.predecessors = this.keyToVertex.get(to).predecessors;
+		
+		Vertex newFrom = new Vertex(from);
+		newFrom.successors = this.keyToVertex.get(from).successors;
+		newFrom.predecessors = this.keyToVertex.get(from).predecessors;
+		
+		newTo.predecessors.add(newFrom);
+		newFrom.successors.add(newTo);
+		
+		this.keyToVertex.put(from, newFrom);
+		this.keyToVertex.put(to, newTo);
+		this.numEdges++;
+		return true;
+	}
+
+	@Override
+	public boolean hasVertex(T key) {
+		return keyToVertex.containsKey(key);
+	}
+
+	@Override
+	public boolean hasEdge(T from, T to) throws NoSuchElementException {
+		if(!this.keyToVertex.containsKey(from) || !this.keyToVertex.containsKey(to)){
+			throw new NoSuchElementException();
+		}
+		
+		/*
+		 * why does this not work? contains always fails when it shouldnt
+		 */
+		Vertex start = this.keyToVertex.get(from);
+		Vertex end = this.keyToVertex.get(to);
+//		if(start.predecessors.contains(end) || start.successors.contains(end)) return true;
+//		if(end.predecessors.contains(start) || end.successors.contains(start)) return true;
+//		if(end.predecessors.indexOf(start)!=-1) return true;
+		
+		for(Vertex v : this.keyToVertex.get(from).successors){
+			if(v.key.equals(to)) return true;
+		}
+		
+		return false;
+	}
+
+	@Override
+	public boolean removeEdge(T from, T to) throws NoSuchElementException {
+		if(!this.keyToVertex.containsKey(from) || !this.keyToVertex.containsKey(to)){
+			throw new NoSuchElementException();
+		}
+		if(!this.hasEdge(from, to)) return false;
+		
+		Vertex start = this.keyToVertex.get(from);
+		Vertex end = this.keyToVertex.get(to);
+		
+		start.successors.remove(end);
+		int revIndex = start.predecessors.indexOf(end);
+//		start.successors.remove(start.successors.indexOf(end));
+		end.predecessors.remove(start);
+		
+		this.keyToVertex.put(from, start);
+		this.keyToVertex.put(to, end);
+		
+//		this.keyToVertex.get(from).successors.remove(end);
+//		this.keyToVertex.get(to).predecessors.remove(start);
+		
+		for(Vertex v : start.successors){
+//			System.out.println(v.key + " " + to);
+			if(v.key.equals(to)){
+				start.successors.remove(v);
+				return true;
+			}
+		}
+		
+		if(start.successors.contains(end)){
+			System.out.println("hi");
+		}
+		
+		return true;
+	}
+
+	@Override
+	public int outDegree(T key) {
+		if(!this.keyToVertex.containsKey(key)) throw new NoSuchElementException();
+		return this.keyToVertex.get(key).successors.size();
+	}
+
+	@Override
+	public int inDegree(T key) {
+		if(!this.keyToVertex.containsKey(key)) throw new NoSuchElementException();
+		return this.keyToVertex.get(key).predecessors.size();
+	}
+
+	@Override
+	public Set<T> keySet() {
+		return keyToVertex.keySet();
+	}
+
+	@Override
+	public Set<T> successorSet(T key) {
+		if(!keyToVertex.containsKey(key)) throw new NoSuchElementException();
+		HashSet<T> retSet = new HashSet<T>();
+		Vertex head = this.keyToVertex.get(key);
+		
+		for(Vertex v : head.successors){
+			retSet.add(v.key);
+		}
+		return retSet;
+	}
+
+	@Override
+	public Set<T> predecessorSet(T key) {
+		if(!keyToVertex.containsKey(key)) throw new NoSuchElementException();
+		HashSet<T> retSet = new HashSet<T>();
+		Vertex head = this.keyToVertex.get(key);
+		
+		for(Vertex v : head.predecessors){
+			retSet.add(v.key);
+		}
+		return retSet;
+	}
+
+	@Override
+	public Iterator<T> successorIterator(T key) {
+		if(!this.keyToVertex.containsKey(key)) throw new NoSuchElementException();
+		Vertex v = this.keyToVertex.get(key);
+		return new GraphIter(v.successors, v.successors.size());
+	}
+
+	@Override
+	public Iterator<T> predecessorIterator(T key) {
+		if(!this.keyToVertex.containsKey(key)) throw new NoSuchElementException();
+		Vertex v = this.keyToVertex.get(key);
+		return new GraphIter(v.predecessors, v.predecessors.size());
+	}
+	
+	public class GraphIter implements Iterator<T> {
+		List<Vertex> list;
+		int startSize;
+		int current;
+		
+		public GraphIter(List<Vertex> successors, int size) {
+			this.list = successors;
+			this.startSize = size;
+			this.current=0;
+		}
+
+		@Override
+		public boolean hasNext() {
+			if(current<startSize) return true;
+			return false;
+		}
+
+		@Override
+		public T next() {
+			this.current++;
+			return list.get(current-1).key;
+		}
+	}
+
+	@Override
+	public Set<T> stronglyConnectedComponent(T key) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<T> shortestPath(T startLabel, T endLabel) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

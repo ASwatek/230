@@ -1,0 +1,31 @@
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class QueueChainManager extends ChainManager {
+
+	private Chain current;
+	private Queue<Chain> chainManager;
+
+	public QueueChainManager() {
+		this.current = new Chain();
+		this.chainManager = new LinkedList<>();
+	}
+
+	@Override
+	public void add(Chain chain) {
+		this.chainManager.offer(chain);
+//		this.updateMax(this.maxSize()+1);
+	}
+
+	@Override
+	public Chain next() {
+		this.incrementNumNexts();
+		return this.chainManager.poll();
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return this.chainManager.peek() == null;
+	}
+
+}

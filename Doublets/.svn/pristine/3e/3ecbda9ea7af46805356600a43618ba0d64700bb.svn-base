@@ -1,0 +1,54 @@
+import java.util.HashSet;
+import java.util.Scanner;
+import java.util.Set;
+
+/**
+ * @author <<TODO>>
+ */
+public class Doublets {
+	private LinksInterface links;
+	private HashSet<String> seenWords;
+
+	public Doublets(LinksInterface links) {
+		this.links = links;
+		this.seenWords=new HashSet<>();
+	}
+
+	public static void main(String[] args) {
+		// TODO: write a text-based UI to find doublets.
+		Scanner input = new Scanner(System.in);
+	}
+
+	public Chain findChain(String start, String end, ChainManager manager) {
+		if(start.length() != end.length()) {
+			return null;
+		}
+		
+		if(this.links.getCandidates(start) == null) {
+			return null;
+		}
+		
+		Chain startChain = new Chain(start);
+		manager.add(startChain);
+		
+		while(!manager.isEmpty()){
+			Chain currentChain = manager.next();
+			if(currentChain.last.equals(end)){
+				return currentChain;
+			}
+			Set<String> candidates = this.links.getCandidates(currentChain.last);
+			if(candidates==null){
+				continue;
+			}
+			for(String candidate : candidates){
+				manager.add(new Chain(currentChain.set, candidate));
+			}
+		}
+		return null;
+	}
+	
+	public boolean alreadySeen(String lastWord){
+		return (seenWords.contains(lastWord));
+	}
+	
+}

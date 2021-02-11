@@ -1,0 +1,104 @@
+import java.util.HashSet;
+import java.util.Scanner;
+import java.util.Set;
+
+/**
+ * @author <<TODO>>
+ */
+public class Doublets {
+	private LinksInterface links;
+	private HashSet<String> seenWords;
+
+	public Doublets(LinksInterface links) {
+		this.links = links;
+		this.seenWords = new HashSet<>();
+	}
+
+	public static void main(String[] args) {
+
+		Scanner input = new Scanner(System.in);
+
+		System.out.println("Welcome to Doublets! A game of verbal torture!");
+
+		LinksInterface links = new Links("../DoubletsData/tiny.dictionary.txt");
+
+		Doublets doublet = new Doublets(links);
+
+		System.out.println("Please enter a starting word:");
+
+		String start = input.nextLine();
+
+		System.out.println("Please enter an end word:");
+
+		String end = input.nextLine();
+
+		System.out.println("Please enter a Chain Manager (S - Stack, Q - Queue, P - Priority Queue, X - Exit) to use:");
+
+		String chainManagerType = input.nextLine();
+
+		ChainManager chosenManager = new StackChainManager();
+
+		if (chainManagerType.equals("S")) {
+			chosenManager = new StackChainManager();
+		} else if (chainManagerType.equals("Q")) {
+			chosenManager = new QueueChainManager();
+		} else if (chainManagerType.equals("P")) {
+			chosenManager = new PriorityQueueChainManager(end);
+		} else if (chainManagerType.equals("X")) {
+			System.out.println("Goodbye!");
+			System.exit(0);
+		} else {
+			System.out.println("That's not a valid Chain Manager type!");
+		}
+
+		Chain resultChain = doublet.findChain(start, end, chosenManager);
+
+		if (resultChain == null) {
+			System.out.println("No Doublet chain exists from " + start + "to " + end);
+			System.exit(0);
+		} else {
+
+			String resultString = resultChain.toString();
+
+			System.out.println("Chain: " + resultChain.toString());
+			System.out.println("Length: " + resultChain.length());
+			System.out.println("Max Size: " + chosenManager.maxSize());
+			System.out.println("Candidates: " + chosenManager.getNumberOfNexts());
+
+		}
+
+	}
+
+	public Chain findChain(String start, String end, ChainManager manager) {
+		if (start.length() != end.length()) {
+			return null;
+		}
+
+		if (this.links.getCandidates(start) == null) {
+			return null;
+		}
+
+		Chain startChain = new Chain(start);
+		manager.add(startChain);
+
+		while (!manager.isEmpty()) {
+			Chain currentChain = manager.next();
+			if (currentChain.last.equals(end)) {
+				return currentChain;
+			}
+			Set<String> candidates = this.links.getCandidates(currentChain.last);
+			if (candidates == null) {
+				continue;
+			}
+			for (String candidate : candidates) {
+				manager.add(new Chain(currentChain.set, candidate));
+			}
+		}
+		return null;
+	}
+
+	public boolean alreadySeen(String lastWord) {
+		return (seenWords.contains(lastWord));
+	}
+
+}
